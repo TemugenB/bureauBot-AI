@@ -1,0 +1,41 @@
+{
+  "in_scope": [
+    {"question": "What documents do I need for the residence permit renewal online application?", "expected_doc": "residence_renewal.txt", "expected_section": "Procedure"},
+    {"question": "Where is the Immigration Office located?", "expected_doc": "residence_renewal.txt", "expected_section": "Procedure"},
+    {"question": "What happens if I don't attend the Immigration Office within 15 days?", "expected_doc": "residence_renewal.txt", "expected_section": "Procedure"},
+    {"question": "Do I need a passport photo for the residence permit renewal?", "expected_doc": "residence_renewal.txt", "expected_section": "Procedure"},
+    {"question": "What health insurances am I entitled to as a scholarship holder?", "expected_doc": "health_insurance.txt", "expected_section": "Health insurance"},
+    {"question": "What does the TAJ card cover?", "expected_doc": "health_insurance.txt", "expected_section": "TAJ card"},
+    {"question": "How long does it take to get the TAJ card?", "expected_doc": "health_insurance.txt", "expected_section": "TAJ card"},
+    {"question": "What documents do I need for the private insurance?", "expected_doc": "health_insurance.txt", "expected_section": "Private insurance"},
+    {"question": "When is the private insurance valid?", "expected_doc": "health_insurance.txt", "expected_section": "Private insurance"},
+    {"question": "How do I get a temporary student ID certificate?", "expected_doc": "student_id.txt", "expected_section": "Student ID"},
+    {"question": "What is the E066 request in Neptun?", "expected_doc": "student_id.txt", "expected_section": "Student ID"},
+    {"question": "How long is the temporary student certificate valid?", "expected_doc": "student_id.txt", "expected_section": "Student ID"},
+    {"question": "How do I register a change of accommodation on Enter Hungary?", "expected_doc": "address_card.txt", "expected_section": "Introduction"},
+    {"question": "What documents do I need to upload for the address change notification?", "expected_doc": "address_card.txt", "expected_section": "Introduction"},
+    {"question": "What documents do I need to apply for a TAJ card as a scholarship holder?", "expected_doc": "taj_first.txt", "expected_section": "Application procedure"},
+    {"question": "Where are the TAJ application appointments held?", "expected_doc": "taj_first.txt", "expected_section": "Application procedure"},
+    {"question": "What is the authorization form for the TAJ application?", "expected_doc": "taj_first.txt", "expected_section": "Application procedure"},
+    {"question": "Do I need a tax ID as a scholarship holder?", "expected_doc": "tax_id.txt", "expected_section": "Introduction"},
+    {"question": "Where is the central tax office in Budapest?", "expected_doc": "tax_id.txt", "expected_section": "Introduction"},
+    {"question": "What are the business hours of the tax office?", "expected_doc": "tax_id.txt", "expected_section": "Introduction"}
+  ],
+  "out_of_scope": [
+    {"question": "How do I get a US tourist visa?"},
+    {"question": "What is the weather forecast for Budapest tomorrow?"},
+    {"question": "How do I apply for a Schengen visa from Nigeria?"},
+    {"question": "What is the capital of France?"},
+    {"question": "How do I cook chicken paprikash?"},
+    {"question": "What are the best restaurants in Budapest?"},
+    {"question": "How do I file taxes in the United States?"},
+    {"question": "What is the meaning of life?"},
+    {"question": "How do I get a driving license in Germany?"},
+    {"question": "What programming language should I learn first?"},
+    {"question": "How do I apply for a mortgage in Hungary?"},
+    {"question": "What is the population of Tokyo?"},
+    {"question": "How do I register a car in Budapest?"},
+    {"question": "What are the symptoms of COVID-19?"},
+    {"question": "How do I open a bank account in Austria?"}
+  ]
+}

@@ -4,30 +4,33 @@ AI-powered chatbot for navigating government administrative procedures with zero
 
 ## Screenshots
 
-![Home Page](docs/media/home.png)
-![Chat Interface](docs/media/chat.png)
-![Sources Management](docs/media/sources.png)
-## Screenshots
-
-### Home & Quick Actions
+### Home Screen
 Pick a process or describe your situation to get step-by-step guidance.
-![Home Screen](Screenshot 2026-06-23 142336.png)
+
+![Home Screen](docs/media/home.png)
 
 ### Conversational Interface
 Ask questions and get answers complete with source citations and verification warnings.
-![Conversation View](Screenshot 2026-06-23 142631.png)
+
+![Conversation View](docs/media/chat.png)
 
 ### Source Library
 View and manage the official documents and references the assistant draws from.
-![Sources List](Screenshot 2026-06-23 142421.png)
+
+![Sources List](docs/media/sources.png)
 
 ### Add New Sources
 Easily expand the assistant's knowledge base by importing from a URL or pasting text manually.
-![Add Sources](Screenshot 2026-06-23 142437.png)
+
+![Add Sources](docs/media/add-sources.png)
 
 ## Demo
 
+### User Flow
+https://github.com/TemugenB/BureaucracyNavigator/blob/main/docs/media/user.mp4
 
+### Admin Flow
+https://github.com/TemugenB/BureaucracyNavigator/blob/main/docs/media/admin.mp4
 
 ## Features
 

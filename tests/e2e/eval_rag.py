@@ -1,10 +1,3 @@
-"""
-RAG evaluation runner — measures retrieval precision and gate accuracy.
-
-Usage:
-    python tests/e2e/eval_rag.py
-    python tests/e2e/eval_rag.py --corpus ./corpus --dataset tests/e2e/eval_dataset.json
-"""
 from __future__ import annotations
 
 import argparse

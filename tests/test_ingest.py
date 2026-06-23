@@ -14,6 +14,9 @@ def _mock_db():
     db = AsyncMock()
     db.add = MagicMock()
     db.commit = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalar.return_value = None
+    db.execute = AsyncMock(return_value=mock_result)
     return db
 
 

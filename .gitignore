@@ -1,4 +1,4 @@
-﻿.env
+.env
 __pycache__/
 *.pyc
 *.pyo
@@ -8,3 +8,4 @@ backend/chroma_db/
 node_modules/
 frontend/dist/
 .pytest_cache/
+*.sqlite3

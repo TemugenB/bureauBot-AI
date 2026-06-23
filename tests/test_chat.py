@@ -108,7 +108,7 @@ class TestStreamResponse:
     @pytest.mark.asyncio
     async def test_refuses_on_low_confidence(self):
         db = _mock_db()
-        service = _build_service(db, reranker=FakeReranker(score=0.05))
+        service = _build_service(db, reranker=FakeReranker(score=-3.0))
         tokens = []
         async for t in service.stream_response("s1", "unknown topic"):
             tokens.append(t)

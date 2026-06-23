@@ -1,4 +1,3 @@
-"""Shared fixtures for the BureauBot test suite."""
 from __future__ import annotations
 
 import pytest
@@ -145,3 +144,20 @@ async def auth_token(client: AsyncClient):
 @pytest.fixture
 def auth_headers(auth_token):
     return {"Authorization": f"Bearer {auth_token}"}
+
+
+@pytest_asyncio.fixture
+async def admin_token(client: AsyncClient, sqlite_engine):
+    res = await client.post("/api/v1/auth/register", json={
+        "username": "adminuser", "email": "admin@example.com", "password": "adminpass123",
+    })
+    token = res.json()["access_token"]
+    # Set is_admin=True directly in the database
+    from sqlalchemy import text
+    async with sqlite_engine.begin() as conn:
+        await conn.execute(text("UPDATE users SET is_admin = 1 WHERE username = 'adminuser'"))
+    # Re-login to get a token with is_admin=True
+    res = await client.post("/api/v1/auth/login", json={
+        "username": "adminuser", "password": "adminpass123",
+    })
+    return res.json()["access_token"]

@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Confidence gate that refuses to answer when retrieval evidence is insufficient."""
 
 import logging
 from dataclasses import dataclass

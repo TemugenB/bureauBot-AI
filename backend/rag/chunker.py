@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Structured document chunker: splits text into parent sections and child paragraphs/list items."""
 
 import re
 import uuid
@@ -22,6 +22,7 @@ class StructuredChunk:
     parent_id: str | None = None
 
 
+# Detect section headings: colon-terminated lines or short all-caps lines
 def _is_heading(line: str) -> bool:
     stripped = line.strip()
     if not stripped:
@@ -33,6 +34,7 @@ def _is_heading(line: str) -> bool:
     return False
 
 
+# Detect list items: lines starting with -, *, bullet, or numbered patterns
 def _is_list_item(line: str) -> bool:
     stripped = line.strip()
     return bool(
@@ -45,6 +47,7 @@ def _word_count(text: str) -> int:
     return len(text.split())
 
 
+# Split oversized text into fixed-size chunks with overlap
 def _fallback_split(text: str, doc_id: str, section_title: str,
                     parent_id: str, parent_content: str) -> list[StructuredChunk]:
     words = text.split()
@@ -62,6 +65,7 @@ def _fallback_split(text: str, doc_id: str, section_title: str,
     return chunks
 
 
+# Break a section's body into paragraph and list-item children
 def _split_section_into_children(
     section_text: str, section_title: str, doc_id: str,
     parent_id: str, parent_content: str,
@@ -100,6 +104,7 @@ def _split_section_into_children(
     return children
 
 
+# Main entry point: split document by headings into parent sections, then split each into children
 def structured_chunk(text: str, doc_id: str) -> list[StructuredChunk]:
     """Split a document into structured parent-child chunks."""
     lines = text.split("\n")

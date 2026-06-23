@@ -1,6 +1,7 @@
-from __future__ import annotations
+"""Chat service: orchestrates RAG retrieval, confidence gating, LLM streaming, and turn persistence."""
 
 import uuid
+import json
 import logging
 from typing import AsyncGenerator
 
@@ -11,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from backend.config import get_settings
-from backend.db.models import Session, ChatTurn, ErrorLog
+from backend.db.models import Session, ChatTurn, ErrorLog, Document
 from backend.rag.retriever import HybridRetriever
 from backend.rag.reranker import CrossEncoderReranker
 from backend.rag.fusion import reciprocal_rank_fusion, hybrid_score, RetrievedChunk
@@ -186,6 +187,10 @@ class ChatService:
             )
 
         # Persistence
+        citations_data = await self._build_rich_citations(top_chunks)
+        if citations_data:
+            yield f"\n\n[CITATIONS]{json.dumps(citations_data)}"
+
         await self._persist_turn(
             session_id=session_id,
             turn_index=turn_index,
@@ -200,6 +205,27 @@ class ChatService:
         )
 
     # Helpers
+
+    async def _build_rich_citations(self, top_chunks: list) -> list[dict]:
+        citations = []
+        seen_doc_ids: set[str] = set()
+        for chunk in top_chunks:
+            doc_id = chunk.doc_id
+            if not doc_id or doc_id in seen_doc_ids:
+                continue
+            seen_doc_ids.add(doc_id)
+            doc = await self.db.get(Document, doc_id)
+            if not doc:
+                continue
+            content = chunk.parent_content or chunk.content
+            citations.append({
+                "doc_title": doc.title,
+                "section_title": chunk.section_title or "",
+                "excerpt": content[:400],
+                "source_url": doc.source_url,
+                "chunk_id": chunk.id,
+            })
+        return citations
 
     async def get_or_create_session(
         self, session_id: str | None, jurisdiction: str = "HU"

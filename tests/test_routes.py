@@ -55,6 +55,20 @@ class TestAuth:
         assert res.status_code == 400
 
     @pytest.mark.asyncio
+    async def test_register_short_username(self, client):
+        res = await client.post("/api/v1/auth/register", json={
+            "username": "ab", "email": "short@test.com", "password": "pass123",
+        })
+        assert res.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_register_short_password(self, client):
+        res = await client.post("/api/v1/auth/register", json={
+            "username": "validuser", "email": "valid@test.com", "password": "12345",
+        })
+        assert res.status_code == 422
+
+    @pytest.mark.asyncio
     async def test_login_valid(self, client):
         await client.post("/api/v1/auth/register", json={
             "username": "loginuser", "email": "login@test.com", "password": "pass123",
@@ -71,6 +85,11 @@ class TestAuth:
             "username": "nobody", "password": "wrong",
         })
         assert res.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_protected_route_no_token(self, client):
+        res = await client.get("/api/v1/documents")
+        assert res.status_code in (401, 403)
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +148,7 @@ class TestChat:
         """Low-confidence query returns structured refusal, not 500."""
         from backend.main import app
         from backend.api.dependencies import get_reranker
-        app.dependency_overrides[get_reranker] = lambda: FakeReranker(score=0.05)
+        app.dependency_overrides[get_reranker] = lambda: FakeReranker(score=-3.0)
 
         with patch("backend.services.chat.genai.Client") as MockClient:
             mock_client = MagicMock()
@@ -153,16 +172,34 @@ class TestChat:
 
 class TestIngest:
     @pytest.mark.asyncio
-    async def test_ingest_document(self, client, auth_token):
+    async def test_ingest_document(self, client, admin_token):
         res = await client.post("/api/v1/ingest", json={
             "text": "x" * 100,
             "title": "Test Document",
             "jurisdiction": "HU",
-        }, headers={"Authorization": f"Bearer {auth_token}"})
+        }, headers={"Authorization": f"Bearer {admin_token}"})
         assert res.status_code == 200
         data = res.json()
         assert "doc_id" in data
         assert data["title"] == "Test Document"
+
+    @pytest.mark.asyncio
+    async def test_ingest_requires_admin(self, client, auth_token):
+        res = await client.post("/api/v1/ingest", json={
+            "text": "x" * 100,
+            "title": "Test",
+            "jurisdiction": "HU",
+        }, headers={"Authorization": f"Bearer {auth_token}"})
+        assert res.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_ingest_text_too_short(self, client, admin_token):
+        res = await client.post("/api/v1/ingest", json={
+            "text": "short",
+            "title": "Test",
+            "jurisdiction": "HU",
+        }, headers={"Authorization": f"Bearer {admin_token}"})
+        assert res.status_code == 422
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +226,30 @@ class TestDocuments:
         assert res.status_code == 200
         assert isinstance(res.json(), list)
 
+    @pytest.mark.asyncio
+    async def test_list_documents_no_auth(self, client):
+        res = await client.get("/api/v1/documents")
+        assert res.status_code in (401, 403)
+
+    @pytest.mark.asyncio
+    async def test_delete_requires_admin(self, client, auth_token):
+        res = await client.delete("/api/v1/documents/nonexistent",
+                                  headers={"Authorization": f"Bearer {auth_token}"})
+        assert res.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_delete_not_found(self, client, admin_token):
+        res = await client.delete("/api/v1/documents/nonexistent",
+                                  headers={"Authorization": f"Bearer {admin_token}"})
+        assert res.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_featured_toggle_requires_admin(self, client, auth_token):
+        res = await client.patch("/api/v1/documents/nonexistent/featured",
+                                 json={"featured": True},
+                                 headers={"Authorization": f"Bearer {auth_token}"})
+        assert res.status_code == 403
+
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -196,11 +257,30 @@ class TestDocuments:
 
 class TestErrors:
     @pytest.mark.asyncio
-    async def test_list_errors(self, client, auth_token):
+    async def test_list_errors(self, client, admin_token):
         res = await client.get("/api/v1/admin/errors",
-                               headers={"Authorization": f"Bearer {auth_token}"})
+                               headers={"Authorization": f"Bearer {admin_token}"})
         assert res.status_code == 200
         assert isinstance(res.json(), list)
+
+    @pytest.mark.asyncio
+    async def test_list_errors_requires_admin(self, client, auth_token):
+        res = await client.get("/api/v1/admin/errors",
+                               headers={"Authorization": f"Bearer {auth_token}"})
+        assert res.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_list_flags(self, client, admin_token):
+        res = await client.get("/api/v1/admin/flags",
+                               headers={"Authorization": f"Bearer {admin_token}"})
+        assert res.status_code == 200
+        assert isinstance(res.json(), list)
+
+    @pytest.mark.asyncio
+    async def test_list_flags_requires_admin(self, client, auth_token):
+        res = await client.get("/api/v1/admin/flags",
+                               headers={"Authorization": f"Bearer {auth_token}"})
+        assert res.status_code == 403
 
 
 # ---------------------------------------------------------------------------
@@ -215,3 +295,31 @@ class TestFlag:
         }, headers={"Authorization": f"Bearer {auth_token}"})
         assert res.status_code == 200
         assert "flag" in res.json()["message"].lower() or "thank" in res.json()["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_flag_invalid_category(self, client, auth_token):
+        res = await client.post("/api/v1/chat/flag", json={
+            "session_id": "s1", "turn_id": 1, "category": "invalid_category",
+        }, headers={"Authorization": f"Bearer {auth_token}"})
+        assert res.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_flag_requires_auth(self, client):
+        res = await client.post("/api/v1/chat/flag", json={
+            "session_id": "s1", "turn_id": 1, "category": "wrong_info",
+        })
+        assert res.status_code in (401, 403)
+
+    @pytest.mark.asyncio
+    async def test_chat_empty_message(self, client, auth_token):
+        res = await client.post("/api/v1/chat", json={
+            "message": "",
+        }, headers={"Authorization": f"Bearer {auth_token}"})
+        assert res.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_chat_message_too_long(self, client, auth_token):
+        res = await client.post("/api/v1/chat", json={
+            "message": "x" * 2001,
+        }, headers={"Authorization": f"Bearer {auth_token}"})
+        assert res.status_code == 422

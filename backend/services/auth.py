@@ -1,6 +1,5 @@
-from __future__ import annotations
-
-from datetime import datetime, timedelta
+"""Authentication service: password hashing, JWT token creation, and user/admin guards."""
+from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
@@ -24,9 +23,9 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def create_token(user_id: int, username: str) -> str:
-    expire = datetime.utcnow() + timedelta(hours=settings.jwt_expiry_hours)
-    return jwt.encode({"sub": str(user_id), "username": username, "exp": expire}, settings.jwt_secret, algorithm="HS256")
+def create_token(user_id: int, username: str, is_admin: bool = False) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expiry_hours)
+    return jwt.encode({"sub": str(user_id), "username": username, "is_admin": is_admin, "exp": expire}, settings.jwt_secret, algorithm="HS256")
 
 
 async def get_current_user(
@@ -41,4 +40,12 @@ async def get_current_user(
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
+
+
+async def get_current_admin(
+    user: User = Depends(get_current_user),
+) -> User:
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return user

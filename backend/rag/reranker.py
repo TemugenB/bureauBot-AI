@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Cross-encoder reranker: re-scores retrieved chunks by query relevance and returns top-k."""
 
 import logging
 from sentence_transformers import CrossEncoder

@@ -1,3 +1,4 @@
+"""Async database engine, session factory, and request-scoped session generator."""
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from backend.db.models import Base
 from backend.config import get_settings

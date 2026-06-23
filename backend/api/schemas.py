@@ -1,13 +1,8 @@
-"""
-api/schemas.py — Pydantic v2 request/response models.
-"""
-from __future__ import annotations
+"""Pydantic v2 request and response models for API validation."""
 from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
 
-
-#Chat
 
 class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(
@@ -21,8 +16,6 @@ class ChatResponse(BaseModel):
     session_id: str
     message: str
 
-
-#Ingest
 
 class IngestRequest(BaseModel):
     text: str = Field(..., min_length=50)
@@ -39,7 +32,47 @@ class IngestResponse(BaseModel):
     message: str = "Document ingested successfully."
 
 
-#Session history
+class CrawlPreviewRequest(BaseModel):
+    urls: list[str] = Field(..., min_length=1)
+    allowed_domains: list[str] = Field(..., min_length=1)
+
+
+class CrawlDocumentOut(BaseModel):
+    filename: str
+    source_url: str
+    content: str
+    is_pdf: bool = False
+    warning: Optional[str] = None
+
+
+class CrawlPreviewResponse(BaseModel):
+    documents: list[CrawlDocumentOut]
+
+
+class CrawlDocumentIn(BaseModel):
+    title: str = Field(..., max_length=256)
+    content: str = Field(..., min_length=10)
+    source_url: Optional[str] = None
+    jurisdiction: str = "HU"
+    task_category: Optional[str] = None
+
+
+class CrawlIngestRequest(BaseModel):
+    documents: list[CrawlDocumentIn] = Field(..., min_length=1)
+
+
+class CrawlIngestResponse(BaseModel):
+    ingested: int
+    doc_ids: list[str]
+
+
+class FeaturedRequest(BaseModel):
+    featured: bool
+
+
+class RenameRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=256)
+
 
 class TurnOut(BaseModel):
     turn_index: int
@@ -57,14 +90,10 @@ class SessionHistoryResponse(BaseModel):
     turns: list[TurnOut]
 
 
-#Health
-
 class HealthResponse(BaseModel):
     status: str = "ok"
     version: str = "1.0.0"
 
-
-#Error log
 
 class ErrorLogOut(BaseModel):
     id: int
@@ -75,17 +104,14 @@ class ErrorLogOut(BaseModel):
     created_at: datetime
 
 
-#Documents
-
 class DocumentOut(BaseModel):
     id: str
     title: str
     jurisdiction: str
     task_category: Optional[str]
+    featured: bool = False
     ingested_at: datetime
 
-
-#Feedback flag
 
 class FlagRequest(BaseModel):
     session_id: str
@@ -97,7 +123,13 @@ class FlagResponse(BaseModel):
     message: str = "Flag recorded. Thank you for your feedback."
 
 
-#Auth
+class FlagOut(BaseModel):
+    id: int
+    session_id: str | None
+    turn_id: int | None
+    category: str
+    created_at: datetime
+
 
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=64)

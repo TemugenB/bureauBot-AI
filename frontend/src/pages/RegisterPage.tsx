@@ -22,8 +22,16 @@ export function RegisterPage() {
       const res = await api.post<{ access_token: string }>("/auth/register", { username, email, password });
       setToken(res.access_token);
       navigate("/");
-    } catch {
-      setError("Username or email already taken");
+    } catch (err: any) {
+      if (err?.data?.detail) {
+        if (Array.isArray(err.data.detail)) {
+          setError(err.data.detail.map((d: any) => d.msg).join(". "));
+        } else {
+          setError(err.data.detail);
+        }
+      } else {
+        setError("Registration failed. Please try again.");
+      }
     }
     setLoading(false);
   };

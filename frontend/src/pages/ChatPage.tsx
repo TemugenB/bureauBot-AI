@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Bot, Flag, User, Coffee, Send } from "lucide-react";
+import { ArrowLeft, Bot, Flag, User, Coffee, Send, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { Container } from "@/components/Container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FlagMessageDialog } from "@/components/FlagMessageDialog";
-import { streamChat } from "@/lib/api";
+import { streamChat, CitationInfo } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-type SourceInfo = { chunk_id: string; section_title: string };
 
 type Message = {
   id: string;
@@ -16,7 +14,7 @@ type Message = {
   content: string;
   rawContent: string;
   flagged?: boolean;
-  sources?: SourceInfo[];
+  sources?: CitationInfo[];
   error?: string;
   disclaimer?: string;
 };
@@ -25,22 +23,9 @@ function stripCitations(text: string): string {
   return text.replace(/\[SRC:[^\]]+\]/g, "").trim();
 }
 
-function extractCitations(text: string): SourceInfo[] {
-  const matches = text.matchAll(/SRC:([a-zA-Z0-9\-_]+)/g);
-  const seen = new Set<string>();
-  const sources: SourceInfo[] = [];
-  for (const m of matches) {
-    if (!seen.has(m[1])) {
-      seen.add(m[1]);
-      sources.push({ chunk_id: m[1], section_title: "" });
-    }
-  }
-  return sources;
-}
-
 export function ChatPage() {
   const [searchParams] = useSearchParams();
-  const category = searchParams.get("category");
+  const topic = searchParams.get("topic");
   const q = searchParams.get("q");
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -54,20 +39,7 @@ export function ChatPage() {
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    if (q) {
-      sendMessage(q);
-    } else if (category) {
-      const examples: Record<string, string> = {
-        "residence-permit": "What documents do I need to prepare for the residence permit renewal online application on enterhungary.gov.hu?",
-        "health-insurance": "What health insurances am I entitled to as a scholarship holder and what does the TAJ card cover?",
-        "student-id": "How do I get a temporary student ID certificate through the E066 request in Neptun?",
-        "address-card": "What are the steps to submit a notification of change of accommodation on enterhungary.gov.hu?",
-        "taj-card": "What documents do I need to bring to the TAJ application appointment in building R for scholarship holders?",
-        "tax-id": "Do I need a tax ID as a scholarship holder in Hungary and how do I apply at the tax office?",
-      };
-      const question = examples[category];
-      if (question) sendMessage(question);
-    }
+    if (q) sendMessage(q);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -87,38 +59,38 @@ export function ChatPage() {
     try {
       for await (const event of streamChat(text, sessionId)) {
         if (event.type === "session") {
-          setSessionId(event.data);
+          setSessionId(event.data as string);
         } else if (event.type === "token") {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsg.id
-                ? { ...m, rawContent: m.rawContent + event.data, content: stripCitations(m.rawContent + event.data) }
+                ? { ...m, rawContent: m.rawContent + (event.data as string), content: stripCitations(m.rawContent + (event.data as string)) }
                 : m,
             ),
           );
-          // Yield to React to render the token
           await new Promise((r) => setTimeout(r, 0));
         } else if (event.type === "error") {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsg.id
-                ? { ...m, error: event.data, content: m.content || "An error occurred." }
+                ? { ...m, error: event.data as string, content: m.content || "An error occurred." }
                 : m,
             ),
           );
         } else if (event.type === "disclaimer") {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMsg.id ? { ...m, disclaimer: event.data } : m,
+              m.id === assistantMsg.id ? { ...m, disclaimer: event.data as string } : m,
+            ),
+          );
+        } else if (event.type === "citations") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsg.id ? { ...m, sources: event.data as CitationInfo[] } : m,
             ),
           );
         } else if (event.type === "done") {
-          setMessages((prev) =>
-            prev.map((m) => {
-              if (m.id !== assistantMsg.id) return m;
-              return { ...m, sources: extractCitations(m.rawContent) };
-            }),
-          );
+          // streaming complete
         }
       }
     } catch {
@@ -152,7 +124,7 @@ export function ChatPage() {
       <div className="mt-4 flex items-center gap-2">
         <Coffee className="h-5 w-5 text-primary" />
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {category ? category.split("-").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" ") : "Conversation"}
+          {topic || "Conversation"}
         </h1>
       </div>
 
@@ -170,6 +142,37 @@ export function ChatPage() {
         </Button>
       </form>
     </Container>
+  );
+}
+
+function CitationCard({ citation }: { citation: CitationInfo }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="rounded border border-border bg-muted/30 px-3 py-2">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-2 text-left text-xs"
+      >
+        {expanded ? <ChevronDown className="h-3 w-3 shrink-0" /> : <ChevronRight className="h-3 w-3 shrink-0" />}
+        <span className="font-medium text-foreground">📄 {citation.doc_title}{citation.section_title && ` → ${citation.section_title}`}</span>
+        {citation.source_url && (
+          <a
+            href={citation.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="ml-auto text-primary hover:text-primary/80"
+            aria-label="Open source"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </button>
+      {expanded && (
+        <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{citation.excerpt}</p>
+      )}
+    </div>
   );
 }
 
@@ -201,10 +204,10 @@ function MessageBubble({ message, sessionId, turnIndex, onFlagged }: { message: 
         )}
 
         {!isUser && message.sources && message.sources.length > 0 && (
-          <div className="mt-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium">Sources cited:</span>
+          <div className="mt-1 space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Sources:</span>
             {message.sources.map((s, i) => (
-              <div key={i}>📄 {s.chunk_id.slice(0, 8)}...</div>
+              <CitationCard key={i} citation={s} />
             ))}
           </div>
         )}

@@ -1,3 +1,4 @@
+"""SQLAlchemy ORM models defining the relational schema for all persistent entities."""
 from datetime import datetime
 from sqlalchemy import (
     String, Text, Float, Integer, Boolean,
@@ -46,6 +47,7 @@ class ChatTurn(Base):
     session: Mapped["Session"] = relationship(back_populates="turns")
 
 
+# Document and chunk models support the parent-child chunking strategy
 class Document(Base):
     __tablename__ = "documents"
 
@@ -54,6 +56,7 @@ class Document(Base):
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     jurisdiction: Mapped[str] = mapped_column(String(64), default="HU")
     task_category: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    featured: Mapped[bool] = mapped_column(Boolean, default=False)
     ingested_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -82,7 +85,7 @@ class ErrorLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     session_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    error_type: Mapped[str] = mapped_column(String(64))  
+    error_type: Mapped[str] = mapped_column(String(64))
     query: Mapped[str | None] = mapped_column(Text, nullable=True)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -98,6 +101,7 @@ class FeedbackFlag(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+# User model with role-based access (is_admin flag)
 class User(Base):
     __tablename__ = "users"
 
@@ -105,4 +109,5 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(64), unique=True)
     email: Mapped[str] = mapped_column(String(256), unique=True)
     hashed_password: Mapped[str] = mapped_column(String(256))
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

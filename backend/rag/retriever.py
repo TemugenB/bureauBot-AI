@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Hybrid retriever combining dense vector search (ChromaDB) with sparse keyword search (BM25)."""
 
 import logging
 from typing import Optional
@@ -28,11 +28,13 @@ class HybridRetriever:
         self._bm25_chunks: list[RetrievedChunk] = []
         self._parent_cache: dict[str, tuple[str, str]] = {}
 
+    # Encode texts into normalised unit vectors for cosine similarity search
     def embed(self, texts: list[str]) -> np.ndarray:
         vecs = self._embedder.encode(texts, batch_size=32, show_progress_bar=False)
         norms = np.linalg.norm(vecs, axis=1, keepdims=True)
         return vecs / (norms + 1e-9)
 
+    # Index chunks into both ChromaDB (vectors) and BM25 (keywords), then cache parent content
     def add_chunks(self, chunks: list[RetrievedChunk]) -> None:
         if not chunks:
             return
@@ -63,6 +65,7 @@ class HybridRetriever:
         self._rebuild_bm25()
         logger.info(f"Indexed {len(chunks)} chunks into Chroma + BM25.")
 
+    # Reload all chunks from ChromaDB and rebuild the BM25 index from scratch
     def _rebuild_bm25(self) -> None:
         result = self._collection.get(include=["documents", "metadatas"])
         self._bm25_chunks = [
@@ -91,6 +94,7 @@ class HybridRetriever:
         bm25 = [self._attach_parent(c) for c in bm25]
         return dense, bm25
 
+    # Enrich a child chunk with its parent's content for broader LLM context
     def _attach_parent(self, chunk: RetrievedChunk) -> RetrievedChunk:
         pid = chunk.metadata.get("parent_id", "")
         if pid and pid in self._parent_cache:
@@ -100,6 +104,7 @@ class HybridRetriever:
             chunk.section_title = section_title
         return chunk
 
+    # Query ChromaDB with the embedded query vector; convert cosine distance to similarity score
     def _dense_retrieve(self, query: str, top_k: int,
                         where_filter: dict | None) -> list[RetrievedChunk]:
         query_vec = self.embed([query])[0].tolist()
@@ -124,6 +129,7 @@ class HybridRetriever:
             ))
         return chunks
 
+    # Score all chunks by keyword overlap, filter by jurisdiction, return top-k
     def _bm25_retrieve(self, query: str, top_k: int,
                        jurisdiction: str | None) -> list[RetrievedChunk]:
         if not self._bm25 or not self._bm25_chunks:

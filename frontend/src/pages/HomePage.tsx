@@ -1,25 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IdCard, HeartPulse, GraduationCap, Home as HomeIcon, CreditCard, Banknote, ArrowRight, Search } from "lucide-react";
+import { FileText, ArrowRight, Search } from "lucide-react";
 import { Container } from "@/components/Container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { api } from "@/lib/api";
 
-type Category = { slug: string; title: string; description: string; icon: React.ComponentType<{ className?: string }> };
-
-const CATEGORIES: Category[] = [
-  { slug: "residence-permit", title: "Residence Permit Renewal", description: "Online application, required documents, and Immigration Office visits.", icon: IdCard },
-  { slug: "health-insurance", title: "Health Insurance", description: "TAJ card, private insurance, and travel insurance options.", icon: HeartPulse },
-  { slug: "student-id", title: "Student ID", description: "Temporary student ID certificate via Neptun E066 request.", icon: GraduationCap },
-  { slug: "address-card", title: "Address Card", description: "Change of accommodation notification on Enter Hungary.", icon: HomeIcon },
-  { slug: "taj-card", title: "TAJ Card Application", description: "First TAJ application for scholarship holders at building R.", icon: CreditCard },
-  { slug: "tax-id", title: "Tax ID", description: "When you need a tax ID and how to apply at the tax office.", icon: Banknote },
-];
+type DocumentInfo = { id: string; title: string; featured: boolean };
 
 export function HomePage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [featured, setFeatured] = useState<DocumentInfo[]>([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    api.get<DocumentInfo[]>("/documents")
+      .then((docs) => setFeatured(docs.filter((d) => d.featured)))
+      .catch((err: any) => setError(err?.message || "Failed to load"));
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,35 +48,39 @@ export function HomePage() {
         </form>
       </div>
 
-      <div className="mt-14">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Popular processes</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            return (
+      {error && (
+        <div className="mt-6 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300 text-center">
+          ⚠ {error}
+        </div>
+      )}
+
+      {featured.length > 0 && (
+        <div className="mt-14">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Popular processes</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {featured.map((doc) => (
               <Card
-                key={cat.slug}
+                key={doc.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => navigate(`/chat?category=${cat.slug}`)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/chat?category=${cat.slug}`); } }}
+                onClick={() => navigate(`/chat?topic=${encodeURIComponent(doc.title)}`)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/chat?topic=${encodeURIComponent(doc.title)}`); } }}
                 className="group cursor-pointer transition-all hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <CardContent className="flex items-start gap-4 p-5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
+                    <FileText className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">{cat.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{cat.description}</p>
+                    <h3 className="font-semibold text-foreground">{doc.title}</h3>
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
                 </CardContent>
               </Card>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </Container>
   );
 }

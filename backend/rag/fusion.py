@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""RAG fusion: reciprocal rank fusion and hybrid scoring to merge retrieval results."""
 
 from dataclasses import dataclass, field
 from collections import defaultdict
@@ -19,7 +19,19 @@ class RetrievedChunk:
     child_content: str = ""
     metadata: dict = field(default_factory=dict)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, RetrievedChunk):
+            return NotImplemented
+        return self.id == other.id
 
+    def __lt__(self, other: "RetrievedChunk") -> bool:
+        return self.score < other.score
+
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+
+# Merge multiple ranked lists using 1/(k+rank) scoring across all lists
 def reciprocal_rank_fusion(
     ranked_lists: list[list[RetrievedChunk]],
     k: int | None = None,
@@ -55,6 +67,7 @@ def _score_normalise(chunks: list[RetrievedChunk]) -> list[RetrievedChunk]:
     return chunks
 
 
+# Blend normalised dense and BM25 scores with configurable alpha weight
 def hybrid_score(
     dense_chunks: list[RetrievedChunk],
     bm25_chunks: list[RetrievedChunk],

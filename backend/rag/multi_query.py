@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Multi-query translator: expands a user question into alternative phrasings via the LLM."""
 
 import logging
 import re

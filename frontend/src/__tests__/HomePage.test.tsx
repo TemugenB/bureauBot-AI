@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { HomePage } from "@/pages/HomePage";
@@ -10,6 +10,21 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+vi.mock("@/lib/api", () => ({
+  api: {
+    get: vi.fn().mockResolvedValue([
+      { id: "1", title: "Residence Permit Renewal", featured: true },
+      { id: "2", title: "Health Insurance", featured: true },
+      { id: "3", title: "Address Card", featured: true },
+    ]),
+  },
+}));
+
+vi.mock("@/lib/auth", () => ({
+  getToken: () => "fake-token",
+  isAuthenticated: () => true,
+}));
+
 function renderPage() {
   return render(
     <MemoryRouter>
@@ -19,14 +34,13 @@ function renderPage() {
 }
 
 describe("HomePage", () => {
-  it("renders all 6 category cards", () => {
+  it("renders featured cards", async () => {
     renderPage();
-    expect(screen.getByText("Residence Permit Renewal")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Residence Permit Renewal")).toBeInTheDocument();
+    });
     expect(screen.getByText("Health Insurance")).toBeInTheDocument();
-    expect(screen.getByText("Student ID")).toBeInTheDocument();
     expect(screen.getByText("Address Card")).toBeInTheDocument();
-    expect(screen.getByText("TAJ Card Application")).toBeInTheDocument();
-    expect(screen.getByText("Tax ID")).toBeInTheDocument();
   });
 
   it("search form navigates to chat", async () => {

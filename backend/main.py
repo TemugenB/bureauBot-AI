@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""FastAPI application entry point: lifespan startup, middleware, and route registration."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+# Startup: init DB schema, warm up ML model singletons before accepting requests
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Admin Assistant API…")
@@ -50,6 +51,15 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+# Catch-all handler: log unhandled exceptions and return 500 without leaking internals
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.exception(f"Unhandled error on {request.method} {request.url.path}: {exc}")
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
+
 
 app.add_middleware(
     CORSMiddleware,

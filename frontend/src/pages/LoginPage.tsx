@@ -21,8 +21,14 @@ export function LoginPage() {
       const res = await api.post<{ access_token: string }>("/auth/login", { username, password });
       setToken(res.access_token);
       navigate("/");
-    } catch {
-      setError("Invalid username or password");
+    } catch (err: any) {
+      if (err?.status === 0) {
+        setError(err.message);
+      } else if (err?.data?.detail) {
+        setError(err.data.detail);
+      } else {
+        setError("Invalid username or password");
+      }
     }
     setLoading(false);
   };

@@ -1,7 +1,7 @@
 """Tests for services/auth.py — mock DB."""
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 from fastapi import HTTPException
 
@@ -37,8 +37,8 @@ class TestCreateToken:
     def test_expiry_set(self):
         token = create_token(user_id=1, username="bob")
         payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-        exp = datetime.utcfromtimestamp(payload["exp"])
-        assert exp > datetime.utcnow()
+        exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        assert exp > datetime.now(timezone.utc)
 
 
 class TestGetCurrentUser:
@@ -65,7 +65,7 @@ class TestGetCurrentUser:
     @pytest.mark.asyncio
     async def test_expired_token_raises_401(self):
         expired = jwt.encode(
-            {"sub": "1", "username": "x", "exp": datetime.utcnow() - timedelta(hours=1)},
+            {"sub": "1", "username": "x", "exp": datetime.now(timezone.utc) - timedelta(hours=1)},
             settings.jwt_secret, algorithm="HS256",
         )
         db = AsyncMock()

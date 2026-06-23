@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Citation verifier that flags ungrounded factual claims in LLM responses."""
 
 import re
 import logging

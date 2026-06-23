@@ -36,8 +36,8 @@ describe("ChatPage", () => {
     expect(screen.getByPlaceholderText(/type your question/i)).toBeInTheDocument();
   });
 
-  it("shows conversation title from category param", () => {
-    renderChat("?category=health-insurance");
+  it("shows conversation title from topic param", () => {
+    renderChat("?topic=Health+Insurance");
     expect(screen.getByRole("heading", { name: /Health Insurance/i })).toBeInTheDocument();
   });
 
